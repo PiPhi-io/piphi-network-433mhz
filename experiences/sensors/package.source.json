@@ -1,0 +1,560 @@
+{
+  "schema_version": "1",
+  "identity": {
+    "publisher_id": "io.piphi",
+    "package_id": "radio-sensors",
+    "version": "0.1.5"
+  },
+  "name": "433 MHz Sensors",
+  "description": "Native read-only dashboard views for 433 MHz Sensors.",
+  "origin": "integration",
+  "owning_integration_id": "piphi-network-433mhz",
+  "sdk_version_range": ">=0.6.1,<0.7",
+  "requires_integrations": [
+    {
+      "integration_id": "piphi-network-433mhz",
+      "version_range": ">=0.1,<1",
+      "optional": false
+    }
+  ],
+  "recommended_for_integrations": [
+    "piphi-network-433mhz"
+  ],
+  "widgets": [
+    {
+      "id": "weather",
+      "name": "433 MHz Weather",
+      "description": "Outdoor readings from a compatible 433 MHz sensor",
+      "runtime": "declarative",
+      "presentation": {
+        "contract_version": "1",
+        "shell": "core",
+        "content_surface": "transparent",
+        "typography": "core",
+        "appearance_controls": [
+          "icon",
+          "title",
+          "surface",
+          "opacity",
+          "radius",
+          "shadow"
+        ]
+      },
+      "interaction_targets": [
+        {
+          "id": "card",
+          "label": "433 MHz Weather",
+          "kind": "card",
+          "allowed_actions": [
+            "more-info",
+            "popout",
+            "refresh"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "temperature_c",
+          "label": "Temperature",
+          "kind": "binding",
+          "binding_slot_id": "temperature_c",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "humidity_percent",
+          "label": "Humidity",
+          "kind": "binding",
+          "binding_slot_id": "humidity_percent",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "wind_speed_kph",
+          "label": "Wind speed",
+          "kind": "binding",
+          "binding_slot_id": "wind_speed_kph",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "rain_total_mm",
+          "label": "Rain total",
+          "kind": "binding",
+          "binding_slot_id": "rain_total_mm",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        }
+      ],
+      "binding_slots": [
+        {
+          "id": "temperature_c",
+          "label": "Temperature",
+          "required": true,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "temperature_c"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        },
+        {
+          "id": "humidity_percent",
+          "label": "Humidity",
+          "required": false,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "humidity_percent"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        },
+        {
+          "id": "wind_speed_kph",
+          "label": "Wind speed",
+          "required": false,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "wind_speed_kph"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        },
+        {
+          "id": "rain_total_mm",
+          "label": "Rain total",
+          "required": false,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "rain_total_mm"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        }
+      ],
+      "recipe": {
+        "schema_version": "1",
+        "layout": "grid",
+        "columns": 2,
+        "items": [
+          {
+            "type": "metric",
+            "slot_id": "temperature_c",
+            "label": "Temperature",
+            "format": "temperature",
+            "domain": "temperature",
+            "action": {
+              "type": "details",
+              "label": "View temperature details"
+            }
+          },
+          {
+            "type": "metric",
+            "slot_id": "humidity_percent",
+            "label": "Humidity",
+            "format": "percent",
+            "domain": "humidity",
+            "action": {
+              "type": "details",
+              "label": "View humidity details"
+            }
+          },
+          {
+            "type": "metric",
+            "slot_id": "wind_speed_kph",
+            "label": "Wind speed",
+            "action": {
+              "type": "details",
+              "label": "View wind speed details"
+            }
+          },
+          {
+            "type": "metric",
+            "slot_id": "rain_total_mm",
+            "label": "Rain total",
+            "action": {
+              "type": "details",
+              "label": "View rain total details"
+            }
+          }
+        ]
+      },
+      "certification": {
+        "schema_version": "1",
+        "verified_gates": ["runtime", "persistence", "binding", "states", "responsive", "themes", "accessibility", "save-reload", "performance"],
+        "evidence": {
+          "runtime": ["core-profile:declarative-v2/runtime"],
+          "persistence": ["core-profile:declarative-v2/persistence"],
+          "binding": ["core-profile:declarative-v2/binding"],
+          "states": ["core-profile:declarative-v2/states"],
+          "responsive": ["core-profile:declarative-v2/responsive"],
+          "themes": ["core-profile:declarative-v2/themes"],
+          "accessibility": ["core-profile:declarative-v2/accessibility"],
+          "save-reload": ["core-profile:declarative-v2/save-reload"],
+          "performance": ["core-profile:declarative-v2/performance"]
+        }
+      },
+      "default_column_span": 4,
+      "default_row_span": 2
+    },
+    {
+      "id": "contact",
+      "name": "433 MHz Contact",
+      "description": "Contact state and radio diagnostics",
+      "runtime": "declarative",
+      "presentation": {
+        "contract_version": "1",
+        "shell": "core",
+        "content_surface": "transparent",
+        "typography": "core",
+        "appearance_controls": [
+          "icon",
+          "title",
+          "surface",
+          "opacity",
+          "radius",
+          "shadow"
+        ]
+      },
+      "interaction_targets": [
+        {
+          "id": "card",
+          "label": "433 MHz Contact",
+          "kind": "card",
+          "allowed_actions": [
+            "more-info",
+            "popout",
+            "refresh"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "contact_open",
+          "label": "Contact",
+          "kind": "binding",
+          "binding_slot_id": "contact_open",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "battery_ok",
+          "label": "Battery OK",
+          "kind": "binding",
+          "binding_slot_id": "battery_ok",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "signal_rssi",
+          "label": "Signal",
+          "kind": "binding",
+          "binding_slot_id": "signal_rssi",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        }
+      ],
+      "binding_slots": [
+        {
+          "id": "contact_open",
+          "label": "Contact",
+          "required": true,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "contact_open"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        },
+        {
+          "id": "battery_ok",
+          "label": "Battery OK",
+          "required": false,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "battery_ok"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        },
+        {
+          "id": "signal_rssi",
+          "label": "Signal",
+          "required": false,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "signal_rssi"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        }
+      ],
+      "recipe": {
+        "schema_version": "1",
+        "layout": "grid",
+        "columns": 2,
+        "items": [
+          {
+            "type": "status",
+            "slot_id": "contact_open",
+            "label": "Contact",
+            "domain": "door",
+            "action": {
+              "type": "details",
+              "label": "View contact details"
+            }
+          },
+          {
+            "type": "status",
+            "slot_id": "battery_ok",
+            "label": "Battery OK",
+            "domain": "generic",
+            "action": {
+              "type": "details",
+              "label": "View battery ok details"
+            }
+          },
+          {
+            "type": "metric",
+            "slot_id": "signal_rssi",
+            "label": "Signal",
+            "action": {
+              "type": "details",
+              "label": "View signal details"
+            }
+          }
+        ]
+      },
+      "certification": {
+        "schema_version": "1",
+        "verified_gates": ["runtime", "persistence", "binding", "states", "responsive", "themes", "accessibility", "save-reload", "performance"],
+        "evidence": {
+          "runtime": ["core-profile:declarative-v2/runtime"],
+          "persistence": ["core-profile:declarative-v2/persistence"],
+          "binding": ["core-profile:declarative-v2/binding"],
+          "states": ["core-profile:declarative-v2/states"],
+          "responsive": ["core-profile:declarative-v2/responsive"],
+          "themes": ["core-profile:declarative-v2/themes"],
+          "accessibility": ["core-profile:declarative-v2/accessibility"],
+          "save-reload": ["core-profile:declarative-v2/save-reload"],
+          "performance": ["core-profile:declarative-v2/performance"]
+        }
+      },
+      "default_column_span": 4,
+      "default_row_span": 2
+    },
+    {
+      "id": "leak",
+      "name": "433 MHz Leak",
+      "description": "Leak status and radio diagnostics",
+      "runtime": "declarative",
+      "presentation": {
+        "contract_version": "1",
+        "shell": "core",
+        "content_surface": "transparent",
+        "typography": "core",
+        "appearance_controls": [
+          "icon",
+          "title",
+          "surface",
+          "opacity",
+          "radius",
+          "shadow"
+        ]
+      },
+      "interaction_targets": [
+        {
+          "id": "card",
+          "label": "433 MHz Leak",
+          "kind": "card",
+          "allowed_actions": [
+            "more-info",
+            "popout",
+            "refresh"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "leak_detected",
+          "label": "Leak detected",
+          "kind": "binding",
+          "binding_slot_id": "leak_detected",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "battery_ok",
+          "label": "Battery OK",
+          "kind": "binding",
+          "binding_slot_id": "battery_ok",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        },
+        {
+          "id": "signal_rssi",
+          "label": "Signal",
+          "kind": "binding",
+          "binding_slot_id": "signal_rssi",
+          "allowed_actions": [
+            "more-info",
+            "history",
+            "popout"
+          ],
+          "default_action": "more-info"
+        }
+      ],
+      "binding_slots": [
+        {
+          "id": "leak_detected",
+          "label": "Leak detected",
+          "required": true,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "leak_detected"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        },
+        {
+          "id": "battery_ok",
+          "label": "Battery OK",
+          "required": false,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "battery_ok"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        },
+        {
+          "id": "signal_rssi",
+          "label": "Signal",
+          "required": false,
+          "binding_modes": [
+            "read"
+          ],
+          "capability_requirements": [
+            "signal_rssi"
+          ],
+          "compatible_integration_ids": [
+            "piphi-network-433mhz"
+          ]
+        }
+      ],
+      "recipe": {
+        "schema_version": "1",
+        "layout": "grid",
+        "columns": 2,
+        "items": [
+          {
+            "type": "status",
+            "slot_id": "leak_detected",
+            "label": "Leak detected",
+            "domain": "generic",
+            "action": {
+              "type": "details",
+              "label": "View leak detected details"
+            }
+          },
+          {
+            "type": "status",
+            "slot_id": "battery_ok",
+            "label": "Battery OK",
+            "domain": "generic",
+            "action": {
+              "type": "details",
+              "label": "View battery ok details"
+            }
+          },
+          {
+            "type": "metric",
+            "slot_id": "signal_rssi",
+            "label": "Signal",
+            "action": {
+              "type": "details",
+              "label": "View signal details"
+            }
+          }
+        ]
+      },
+      "certification": {
+        "schema_version": "1",
+        "verified_gates": ["runtime", "persistence", "binding", "states", "responsive", "themes", "accessibility", "save-reload", "performance"],
+        "evidence": {
+          "runtime": ["core-profile:declarative-v2/runtime"],
+          "persistence": ["core-profile:declarative-v2/persistence"],
+          "binding": ["core-profile:declarative-v2/binding"],
+          "states": ["core-profile:declarative-v2/states"],
+          "responsive": ["core-profile:declarative-v2/responsive"],
+          "themes": ["core-profile:declarative-v2/themes"],
+          "accessibility": ["core-profile:declarative-v2/accessibility"],
+          "save-reload": ["core-profile:declarative-v2/save-reload"],
+          "performance": ["core-profile:declarative-v2/performance"]
+        }
+      },
+      "default_column_span": 4,
+      "default_row_span": 2
+    }
+  ]
+}
