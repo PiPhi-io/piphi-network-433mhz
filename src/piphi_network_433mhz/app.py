@@ -11,7 +11,7 @@ from pathlib import Path
 import time
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 import httpx
 from pydantic import BaseModel, ConfigDict
 
@@ -41,6 +41,7 @@ from piphi_runtime_kit_python import (
     create_runtime_starter,
     resolve_core_base_url,
     runtime_lifespan,
+    schedule_event_delivery,
     schedule_telemetry_delivery,
     validate_typed_configs,
 )
@@ -119,6 +120,7 @@ starter = create_runtime_starter(
 runtime = starter.runtime
 registry = starter.registry
 telemetry = starter.telemetry_client
+event_client = starter.event_client
 config_sync = starter.config_sync
 recent_seen_devices: OrderedDict[str, dict[str, Any]] = OrderedDict()
 discovery_waiters: set[tuple[asyncio.AbstractEventLoop, asyncio.Event]] = set()
@@ -223,6 +225,55 @@ def append_runtime_event(
             source=INTEGRATION_ID,
             severity=severity,
         )
+    )
+
+
+def emit_leak_transition_event(
+    *,
+    entry: dict[str, Any],
+    previous_metrics: dict[str, Any],
+    current_metrics: dict[str, Any],
+    profile_id: str,
+    source_transport: str,
+) -> None:
+    if "leak_detected" not in previous_metrics or "leak_detected" not in current_metrics:
+        return
+    previous_value = previous_metrics.get("leak_detected")
+    current_value = current_metrics.get("leak_detected")
+    if (
+        previous_value == current_value
+        or not isinstance(previous_value, bool)
+        or not isinstance(current_value, bool)
+    ):
+        return
+
+    event_type = (
+        "rtl433.safety.leak.detected"
+        if current_value
+        else "rtl433.safety.leak.cleared"
+    )
+    event_payload = {
+        "capability": "leak_detected",
+        "previous_value": previous_value,
+        "current_value": current_value,
+        "profile": profile_id,
+        "transport": source_transport,
+    }
+    append_runtime_event(
+        event_type=event_type,
+        device=entry,
+        payload=event_payload,
+        severity="warning",
+    )
+    schedule_event_delivery(
+        process_state=runtime.process_state,
+        event_client=event_client,
+        auth_context=runtime.auth,
+        event_type=event_type,
+        device=entry,
+        payload=event_payload,
+        source=INTEGRATION_ID,
+        severity="warning",
     )
 
 
@@ -731,13 +782,26 @@ async def entities() -> list[dict[str, Any]]:
 
 
 @app.get("/state")
-async def state() -> dict[str, Any]:
+async def state(
+    refresh: bool = Query(default=False),
+    refresh_request_id: str | None = Query(default=None),
+) -> dict[str, Any]:
+    try:
+        state_payload = await starter.state.response(
+            refresh=refresh,
+            refresh_request_id=refresh_request_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
+        **state_payload,
         "summary": {
             "active_config_count": len(registry.ids()),
             "recent_event_count": len(registry.recent_events),
             "recent_discovery_count": len(recent_seen_devices),
         },
+        # ``entries`` is part of this integration's existing public API.
+        # Only the refresh receipt is new; do not rename or reshape it.
         "entries": registry.entries,
         "state_snapshots": registry.state_snapshots,
         "recent_seen_devices": list(recent_seen_devices.values())[-25:],
@@ -814,7 +878,23 @@ async def process_rtl433_packet(
         if profile_id != entry.get("profile"):
             entry["profile"] = profile_id
         metrics = extract_metrics(payload, profile_id)
-        entry["observed_metrics"] = sorted(metrics.keys())
+        current_snapshot = registry.state_snapshots.get(config_id)
+        current_state = (
+            current_snapshot.get("state")
+            if isinstance(current_snapshot, dict)
+            else {}
+        )
+        previous_metrics = (
+            current_state.get("last_metrics")
+            if isinstance(current_state, dict)
+            else {}
+        )
+        if not isinstance(previous_metrics, dict):
+            previous_metrics = {}
+        merged_metrics = {**previous_metrics, **metrics}
+        entry["observed_metrics"] = sorted(
+            set(entry.get("observed_metrics") or []) | set(metrics)
+        )
         registry.update_state(
             config_id,
             {
@@ -823,7 +903,7 @@ async def process_rtl433_packet(
                 "station_id": discovered["station_id"],
                 "channel": discovered["channel"],
                 "profile": profile_id,
-                "last_metrics": metrics,
+                "last_metrics": merged_metrics,
                 "observed_metrics": entry["observed_metrics"],
             },
         )
@@ -839,6 +919,14 @@ async def process_rtl433_packet(
                 metrics=metrics,
                 units=metric_units(profile_id, list(metrics.keys())),
             )
+
+        emit_leak_transition_event(
+            entry=entry,
+            previous_metrics=previous_metrics,
+            current_metrics=metrics,
+            profile_id=profile_id,
+            source_transport=source_transport,
+        )
 
         append_runtime_event(
             event_type="rtl433.packet.matched",

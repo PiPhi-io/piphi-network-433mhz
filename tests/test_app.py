@@ -1,6 +1,7 @@
 import importlib
 import asyncio
 import json
+from pathlib import Path
 import time
 
 from fastapi.testclient import TestClient
@@ -311,6 +312,163 @@ def test_ingest_matching_config_updates_state_and_emits_event(monkeypatch) -> No
 
     event_types = [event["event_type"] for event in events_response.json()["events"]]
     assert "rtl433.packet.matched" in event_types
+
+
+def test_leak_packets_emit_only_real_transitions_to_core(monkeypatch) -> None:
+    reset_runtime_state()
+    client = TestClient(app)
+    event_deliveries: list[dict] = []
+
+    monkeypatch.setattr(
+        app_module,
+        "schedule_telemetry_delivery",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr(
+        app_module,
+        "schedule_event_delivery",
+        lambda **kwargs: event_deliveries.append(kwargs),
+    )
+    client.post(
+        "/config",
+        json={
+            "id": "cfg-leak-1",
+            "profile": "leak_sensor",
+            "model": "Generic-Leak",
+            "station_id": "8",
+            "alias": "Utility Room Leak Sensor",
+        },
+    )
+
+    def ingest(value: int) -> None:
+        response = client.post(
+            "/ingest/rtl433",
+            json={
+                "model": "Generic-Leak",
+                "id": 8,
+                "leak": value,
+                "battery_ok": 1,
+            },
+        )
+        assert response.status_code == 200
+
+    ingest(0)
+    ingest(0)
+    assert event_deliveries == []
+
+    partial_response = client.post(
+        "/ingest/rtl433",
+        json={"model": "Generic-Leak", "id": 8, "battery_ok": 1},
+    )
+    assert partial_response.status_code == 200
+    assert event_deliveries == []
+    assert client.get("/state").json()["state_snapshots"]["cfg-leak-1"]["state"][
+        "last_metrics"
+    ]["leak_detected"] is False
+
+    ingest(1)
+    ingest(1)
+    ingest(0)
+
+    assert [delivery["event_type"] for delivery in event_deliveries] == [
+        "rtl433.safety.leak.detected",
+        "rtl433.safety.leak.cleared",
+    ]
+    assert all(delivery["severity"] == "warning" for delivery in event_deliveries)
+    assert all(
+        delivery["device"]["device_id"] == "Generic-Leak::8::na"
+        for delivery in event_deliveries
+    )
+    assert event_deliveries[0]["payload"] == {
+        "capability": "leak_detected",
+        "previous_value": False,
+        "current_value": True,
+        "profile": "leak_sensor",
+        "transport": "http",
+    }
+
+    event_types = [
+        event["event_type"]
+        for event in client.get("/events").json()["events"]
+    ]
+    assert event_types.count("rtl433.safety.leak.detected") == 1
+    assert event_types.count("rtl433.safety.leak.cleared") == 1
+
+
+def test_leak_transition_delivers_authenticated_event_to_mock_core(
+    mock_core,
+    monkeypatch,
+) -> None:
+    reset_runtime_state()
+    monkeypatch.setattr(app_module.telemetry, "core_base_url", mock_core.base_url)
+    monkeypatch.setattr(app_module.event_client, "core_base_url", mock_core.base_url)
+    payload = build_config_payload(
+        config_id="cfg-leak-core-1",
+        container_id="runtime-leak-123",
+        integration_id=app_module.INTEGRATION_ID,
+        extra={
+            "profile": "leak_sensor",
+            "model": "Generic-Leak",
+            "station_id": "18",
+            "alias": "Laundry Leak Sensor",
+        },
+    )
+    headers = build_runtime_headers(
+        container_id="runtime-leak-123",
+        internal_token="secret-token",
+    )
+
+    with TestClient(app) as client:
+        assert client.post("/config", json=payload, headers=headers).status_code == 200
+        assert client.post(
+            "/ingest/rtl433",
+            json={"model": "Generic-Leak", "id": 18, "leak": 0},
+            headers=headers,
+        ).status_code == 200
+        assert client.post(
+            "/ingest/rtl433",
+            json={"model": "Generic-Leak", "id": 18, "leak": 1},
+            headers=headers,
+        ).status_code == 200
+
+        wait_for(lambda: len(mock_core.event_requests) >= 1)
+        event_request = mock_core.assert_event_sent(
+            device_id="Generic-Leak::18::na",
+            config_id="cfg-leak-core-1",
+            event_type="rtl433.safety.leak.detected",
+        )
+        event_headers = {
+            key.lower(): value for key, value in event_request.headers.items()
+        }
+        assert event_headers["x-container-id"] == "runtime-leak-123"
+        assert event_headers["x-piphi-integration-token"] == "secret-token"
+        assert event_request.json_body["severity"] == "warning"
+        assert event_request.json_body["data"]["current_value"] is True
+
+
+def test_manifest_declares_fail_closed_security_coverage() -> None:
+    manifest = json.loads(
+        (Path(__file__).resolve().parents[1] / "src" / "manifest.json").read_text()
+    )
+    mappings = manifest["security"]["event_mappings"]
+
+    assert manifest["security"]["contract_version"] == "1"
+    assert len({mapping["source_event_type"] for mapping in mappings}) == len(mappings)
+    assert all(mapping["device_models"] for mapping in mappings)
+    assert all(mapping["required_permissions"] for mapping in mappings)
+    assert {
+        mapping["source_event_type"]: mapping["canonical_event_type"]
+        for mapping in mappings
+        if mapping["status"] == "implemented"
+    } == {
+        "rtl433.safety.leak.detected": "safety_leak_detected",
+        "rtl433.safety.leak.cleared": "safety_leak_cleared",
+    }
+    assert {
+        mapping["source_event_type"]
+        for mapping in mappings
+        if mapping["status"] == "excluded"
+    } == {"rtl433.contact.opened", "rtl433.packet.matched"}
 
 
 def test_ingest_generic_config_uses_inferred_weather_metrics(monkeypatch) -> None:
