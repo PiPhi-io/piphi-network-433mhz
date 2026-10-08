@@ -2,7 +2,7 @@
   "manifest_version": "1.0",
   "id": "piphi-network-433mhz",
   "name": "PiPhi Network 433MHz Devices",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Generic rtl_433-based integration for supported sub-GHz sensors and devices.",
   "maintainer": {
     "name": "PiPhi Network",
@@ -62,6 +62,7 @@
         "id": "piphi.service.rtl433-bridge",
         "kind": "platform_service",
         "version_range": ">=0.1.0,<1.0.0",
+        "recommended_version": "0.1.4",
         "required": true,
         "shared": true,
         "auto_install": true,
@@ -157,6 +158,15 @@
       "timeout_ms": 5000
     }
   },
+  "security": {
+    "contract_version": "1",
+    "event_mappings": [
+      {"source_event_type": "rtl433.safety.leak.detected", "canonical_event_type": "safety_leak_detected", "status": "implemented", "device_models": ["rtl_433 leak_sensor profile"], "required_permissions": ["rtl_433 packet receive"]},
+      {"source_event_type": "rtl433.safety.leak.cleared", "canonical_event_type": "safety_leak_cleared", "status": "implemented", "device_models": ["rtl_433 leak_sensor profile"], "required_permissions": ["rtl_433 packet receive"]},
+      {"source_event_type": "rtl433.contact.opened", "status": "excluded", "device_models": ["rtl_433 contact_sensor profile"], "required_permissions": ["rtl_433 packet receive"], "notes": "An open contact is routine state and is not proof of forced entry."},
+      {"source_event_type": "rtl433.packet.matched", "status": "excluded", "device_models": ["All rtl_433 profiles"], "required_permissions": ["rtl_433 packet receive"], "notes": "This event multiplexes weather, contact, leak, and diagnostic packets and cannot safely represent a security incident."}
+    ]
+  },
   "entities": [
     {
       "id": "temperature_c",
@@ -214,5 +224,10 @@
         "signal_rssi"
       ]
     }
-  ]
+  ],
+  "ui": {
+    "experience_packages": [
+      {"registry_id": "io.piphi.radio-sensors", "version_range": ">=0.1,<1", "auto_install": true}
+    ]
+  }
 }
