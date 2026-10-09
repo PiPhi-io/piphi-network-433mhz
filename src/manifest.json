@@ -2,13 +2,13 @@
   "manifest_version": "1.0",
   "id": "piphi-network-433mhz",
   "name": "PiPhi Network 433MHz Devices",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Generic rtl_433-based integration for supported sub-GHz sensors and devices.",
   "maintainer": {
     "name": "PiPhi Network",
     "website": "https://piphi.io"
   },
-  "image": "piphinetwork/piphi-network-433mhz:0.1.6",
+  "image": "piphinetwork/piphi-network-433mhz:0.1.7",
   "platforms": [
     "linux"
   ],
@@ -16,7 +16,7 @@
     "linux": {
       "type": "container",
       "container": {
-        "image": "piphinetwork/piphi-network-433mhz:0.1.6",
+        "image": "piphinetwork/piphi-network-433mhz:0.1.7",
         "ports": [
           {
             "container": 8090,
